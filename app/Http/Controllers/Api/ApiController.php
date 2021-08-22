@@ -47,6 +47,7 @@ class ApiController extends Controller
      *       ),
      *     )
      */
+    
     public function getCountPropertiesByZipcode(Request $request)
     {
         try {
