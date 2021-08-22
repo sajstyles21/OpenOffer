@@ -1,0 +1,138 @@
+openapi: 3.0.0
+info:
+  title: 'Open Offer'
+  description: 'Open Offer Apis'
+  contact:
+    name: 'Suraj Sharma'
+    email: sharmasuraj41@gmail.com
+  version: 1.0.0
+servers:
+  -
+    url: 'http://127.0.0.1:8000'
+paths:
+  /api/count_properties_by_zipcode:
+    post:
+      tags:
+        - API
+      summary: 'Api properties count by zipcode'
+      description: 'Api properties count by zipcode'
+      operationId: api.propertiesCount
+      parameters:
+        -
+          $ref: '#/components/parameters/X-localization'
+        -
+          name: zipcode
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'successful operation'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiModel'
+  /api/avg_price_by_zipcode:
+    post:
+      tags:
+        - API
+      summary: 'Api avg price by zipcode'
+      description: 'Api avg price by zipcode'
+      operationId: api.avgPrice
+      parameters:
+        -
+          $ref: '#/components/parameters/X-localization'
+        -
+          name: zipcode
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'successful operation'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiModel'
+  /api/avg_days_by_zipcode:
+    post:
+      tags:
+        - API
+      summary: 'Api avg days by zipcode'
+      description: 'Api avg days by zipcode'
+      operationId: api.avgDays
+      parameters:
+        -
+          $ref: '#/components/parameters/X-localization'
+        -
+          name: zipcode
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'successful operation'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiModel'
+components:
+  schemas:
+    ApiModel:
+      required:
+        - statusCode
+        - msg
+        - data
+      properties:
+        statusCode:
+          type: integer
+          format: int32
+        msg:
+          type: string
+        data:
+          type: object
+      type: object
+      example:
+        statusCode: 200
+        message: successful
+        data: null
+    pageRequestSchema:
+      properties:
+        page:
+          description: '(Optional) Pagination page number. Default is 1'
+          type: integer
+        limit:
+          description: '(Optional) Pagination page limit. Default is 8'
+          type: integer
+      type: object
+  parameters:
+    X-localization:
+      name: X-localization
+      in: header
+      description: 'Language (e.g. `en`, `ar`) (default will be: `en`)'
+      schema:
+        type: string
+        enum:
+          - en
+          - ar
+    page:
+      name: page
+      in: query
+      description: '(Optional) Pagination page number. Default is 1'
+      schema:
+        type: integer
+    limit:
+      name: limit
+      in: query
+      description: '(Optional) Pagination page limit. Default is 8'
+      schema:
+        type: integer
+  securitySchemes:
+    Bearer:
+      type: apiKey
+      name: Authorization
+      in: header
+      bearerFormat: JWT
