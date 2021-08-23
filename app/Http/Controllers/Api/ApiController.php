@@ -47,7 +47,7 @@ class ApiController extends Controller
      *       ),
      *     )
      */
-    
+
     public function getCountPropertiesByZipcode(Request $request)
     {
         try {
@@ -68,23 +68,24 @@ class ApiController extends Controller
                 ->select('stage_name', 'resource')->get()->keyBy('resource');
 
             //Get Data required
-            $first = DB::connection('mysql2')->table('re1')
+            $query = DB::connection('mysql2')->table('re1')
                 ->where($getColumnNames['RE1']->stage_name, $request->zipcode)
                 ->where('L_ListingDate', '>=', self::STARTDATE)
                 ->where('L_ListingDate', '<=', self::ENDDATE)
-                ->select('id')->count();
+                ->select('id')->unionAll(DB::connection('mysql2')->table('ri2')
+                    ->where($getColumnNames['RI2']->stage_name, $request->zipcode)
+                    ->where('L_ListingDate', '>=', self::STARTDATE)
+                    ->where('L_ListingDate', '<=', self::ENDDATE)
+                    ->select('id'));
 
-            $second = DB::connection('mysql2')->table('ri2')
-                ->where($getColumnNames['RI2']->stage_name, $request->zipcode)
-                ->where('L_ListingDate', '>=', self::STARTDATE)
-                ->where('L_ListingDate', '<=', self::ENDDATE)
-                ->select('id')->count();
-
-            $all = ['RE1' => $first, 'RI2' => $second];
+            $data = DB::connection('mysql2')->table(DB::raw("({$query->toSql()}) AS final"))
+                ->mergeBindings($query)
+                ->select('id')
+                ->count();
 
             return response([
                 'success' => 1, 'statuscode' => 200,
-                'message' => __('Data fetched successfully!'), 'data' => $all,
+                'message' => __('Data fetched successfully!'), 'data' => $data,
             ], 200);
 
         } catch (\Exception $e) {
@@ -140,23 +141,24 @@ class ApiController extends Controller
                 ->select('stage_name', 'resource')->get()->keyBy('resource');
 
             //Get Data required
-            $first = DB::connection('mysql2')->table('re1')
+            $query = DB::connection('mysql2')->table('re1')
                 ->where($getColumnNamesZip['RE1']->stage_name, $request->zipcode)
                 ->where('L_ListingDate', '>=', self::STARTDATE)
                 ->where('L_ListingDate', '<=', self::ENDDATE)
-                ->select('id', $getColumnNamesPrice['RE1']->stage_name)->avg($getColumnNamesPrice['RE1']->stage_name);
+                ->select('id', DB::raw('' . $getColumnNamesPrice['RE1']->stage_name . ' as value'))->unionAll(DB::connection('mysql2')->table('ri2')
+                    ->where($getColumnNamesZip['RI2']->stage_name, $request->zipcode)
+                    ->where('L_ListingDate', '>=', self::STARTDATE)
+                    ->where('L_ListingDate', '<=', self::ENDDATE)
+                    ->select('id', DB::raw('' . $getColumnNamesPrice['RI2']->stage_name . ' as value')));
 
-            $second = DB::connection('mysql2')->table('ri2')
-                ->where($getColumnNamesZip['RI2']->stage_name, $request->zipcode)
-                ->where('L_ListingDate', '>=', self::STARTDATE)
-                ->where('L_ListingDate', '<=', self::ENDDATE)
-                ->select('id', $getColumnNamesPrice['RI2']->stage_name)->avg($getColumnNamesPrice['RI2']->stage_name);
-
-            $all = ['RE1' => round($first, 2), 'RI2' => round($second, 2)];
+            $data = DB::connection('mysql2')->table(DB::raw("({$query->toSql()}) AS final"))
+                ->mergeBindings($query)
+                ->select('id', 'value')
+                ->avg('value');
 
             return response([
                 'success' => 1, 'statuscode' => 200,
-                'message' => __('Data fetched successfully!'), 'data' => $all,
+                'message' => __('Data fetched successfully!'), 'data' => round($data, 2),
             ], 200);
 
         } catch (\Exception $e) {
@@ -212,25 +214,26 @@ class ApiController extends Controller
                 ->select('stage_name', 'resource')->get()->keyBy('resource');
 
             //Get Data required
-            $first = DB::connection('mysql2')->table('re1')
+            $query = DB::connection('mysql2')->table('re1')
                 ->where($getColumnNamesZip['RE1']->stage_name, $request->zipcode)
                 ->where($getColumnNamesStatus['RE1']->stage_name, 'SOLD')
                 ->where('L_ListingDate', '>=', self::STARTDATE)
                 ->where('L_ListingDate', '<=', self::ENDDATE)
-                ->select(DB::raw("AVG(DATEDIFF(L_StatusDate,L_ListingDate))AS days"))->first();
+                ->select('id', DB::raw("DATEDIFF(L_StatusDate,L_ListingDate)AS days"))->unionAll(DB::connection('mysql2')->table('ri2')
+                    ->where($getColumnNamesZip['RI2']->stage_name, $request->zipcode)
+                    ->where($getColumnNamesStatus['RI2']->stage_name, 'SOLD')
+                    ->where('L_ListingDate', '>=', self::STARTDATE)
+                    ->where('L_ListingDate', '<=', self::ENDDATE)
+                    ->select('id', DB::raw("DATEDIFF(L_StatusDate,L_ListingDate)AS days")));
 
-            $second = DB::connection('mysql2')->table('ri2')
-                ->where($getColumnNamesZip['RI2']->stage_name, $request->zipcode)
-                ->where($getColumnNamesStatus['RI2']->stage_name, 'SOLD')
-                ->where('L_ListingDate', '>=', self::STARTDATE)
-                ->where('L_ListingDate', '<=', self::ENDDATE)
-                ->select(DB::raw("AVG(DATEDIFF(L_StatusDate,L_ListingDate))AS days"))->first();
-
-            $all = ['RE1' => round($first->days, 2), 'RI2' => round($second->days, 2)];
+            $data = DB::connection('mysql2')->table(DB::raw("({$query->toSql()}) AS final"))
+                ->mergeBindings($query)
+                ->select('id', 'days')
+                ->avg('days');
 
             return response([
                 'success' => 1, 'statuscode' => 200,
-                'message' => __('Data fetched successfully!'), 'data' => $all,
+                'message' => __('Data fetched successfully!'), 'data' => round($data, 2),
             ], 200);
 
         } catch (\Exception $e) {
